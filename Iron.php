@@ -13,6 +13,7 @@ use yii\base\Component;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
 use yii\helpers\FileHelper;
+use yii\helpers\Json;
 
 class Iron extends Component
 {
@@ -130,5 +131,112 @@ class Iron extends Component
 	public function runWorker($route, $params)
 	{
 		// tbd
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function getArgs()
+	{
+		global $argv;
+		static $args;
+
+		if (!defined(YII_IRON_ENV) || YII_IRON_ENV == false) {
+			throw new \RuntimeException('Not running as iron worker.');
+		}
+		if (!isset($args)) {
+
+			$args = ['task_id' => null, 'dir' => null, 'payload' => [], 'config' => null];
+
+			foreach ($argv as $k => $v) {
+				if (empty($argv[$k + 1])) {
+					continue;
+				}
+
+				if ($v == '-id') {
+					$args['task_id'] = $argv[$k + 1];
+				}
+				if ($v == '-d') {
+					$args['dir'] = $argv[$k + 1];
+				}
+
+				if ($v == '-payload' && file_exists($argv[$k + 1])) {
+					$args['payload'] = file_get_contents($argv[$k + 1]);
+
+					$parsed_payload = Json::decode($args['payload']); // decode as array
+
+					if ($parsed_payload != null) {
+						$args['payload'] = $parsed_payload;
+					}
+				}
+
+				if ($v == '-config' && file_exists($argv[$k + 1])) {
+					$args['config'] = file_get_contents($argv[$k + 1]);
+
+					$parsed_config = Json::decode($args['config']);
+
+					if ($parsed_config != null) {
+						$args['config'] = $parsed_config;
+					}
+				}
+			}
+		}
+
+		return $args;
+	}
+
+	/**
+	 * @return string|null
+	 */
+	public static function getTaskId()
+	{
+
+		$args = self::getArgs();
+		return $args['task_Id'];
+	}
+
+	/**
+	 * @return array|null
+	 */
+	public static function getConfig()
+	{
+		$args = self::getArgs();
+		return $args['config'];
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function getPayload()
+	{
+		$args = self::getArgs();
+		return $args['payload'];
+	}
+
+	/**
+	 * @return string
+	 */
+	public static function getRoute()
+	{
+		$payload = self::getPayload();
+		return $payload['route'];
+	}
+
+	/**
+	 * @return array
+	 */
+	public static function getParams()
+	{
+		$payload = self::getPayload();
+		return $payload['params'];
+	}
+
+	/**
+	 * @return string
+	 */
+	public static function getDir()
+	{
+		$args = self::getArgs();
+		return $args['dir'];
 	}
 }

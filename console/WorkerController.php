@@ -10,6 +10,7 @@
 namespace spacedealer\iron\console;
 
 use yii\base\InvalidConfigException;
+use yii\helpers\ArrayHelper;
 use yii\helpers\Json;
 use yii\helpers\Security;
 
@@ -22,24 +23,24 @@ use yii\helpers\Security;
 abstract class WorkerController extends \yii\console\Controller
 {
 	/**
-	 * @var bool
+	 * @var bool whether to run as worker or locally
 	 */
-	public $ironWorker = true;
+	public $worker = true;
 
 	/**
-	 * @var int
+	 * @var int worker timeout in seconds. max 3600 seconds.
 	 */
-	public $ironWorkerTimeout = 3600;
+	public $workerTimeout = 3600;
 
 	/**
-	 * @var int
+	 * @var int worker priority: 0 = lowest ... 2 = highest
 	 */
-	public $ironWorkerPriority = 0;
+	public $workerPriority = 0;
 
 	/**
-	 * @var int
+	 * @var int seconds worker will be delayed before running
 	 */
-	public $ironWorkerDelay = 0;
+	public $workerDelay = 0;
 
 	/**
 	 * @var string
@@ -60,11 +61,21 @@ abstract class WorkerController extends \yii\console\Controller
 	 */
 	public function run($route, $params = [])
 	{
-		if (isset($params['ironWorker']) && $params['ironWorker'] == true) {
+		if (isset($params['worker']) && $params['worker'] == true) {
+			// start worker
+			// TODO: wait for worker - good for manual debugging
 			return $this->runAsIronWorker($route, $params);
+		} else if ($this->isRunningAsWorker()) {
+			// run as worker on iron worker
+			$iron = $this->getIron();
 
+			// decrypt params
+			$paramsDecrypted = Security::encrypt($params, $iron->payloadSecurityHash);
+			$paramsDecrypted = Json::encode($paramsDecrypted);
+
+			return parent::run($route, $paramsDecrypted);
 		} else {
-			// run locally
+			// running locally
 			return parent::run($route, $params);
 		}
 	}
@@ -79,32 +90,32 @@ abstract class WorkerController extends \yii\console\Controller
 		$iron = $this->getIron();
 
 		// overwrite global iron worker values first with given param values and remove them from set
-		$ironWorkerVars = [
-			'ironWorker',
-			'ironWorkerTimeout',
-			'ironWorkerPriority',
-			'ironWorkerDelay',
-		];
+		$workerVars = $this->getWorkerVars();
+
 		foreach ($params as $name => $value) {
-			if (in_array($name, $ironWorkerVars)) {
+			if (in_array($name, $workerVars)) {
 				$this->$name = $params[$name];
 				unset($params[$name]);
 			}
 		}
 
+		// disable interactive mode
+		$params['interactive'] = false;
+
 		// prepare worker options
 		$options = [
-			'priority' => $this->ironWorkerPriority,
-			'timeout' => $this->ironWorkerTimeout,
-			'delay' => $this->ironWorkerDelay,
+			'priority' => $this->workerPriority,
+			'timeout' => $this->workerTimeout,
+			'delay' => $this->workerDelay,
 		];
 
 		// prepare payload with encrypted params
 		$paramsEncrypted = Json::encode($params);
 		$paramsEncrypted = Security::encrypt($paramsEncrypted, $iron->payloadSecurityHash);
 		$payload = [
+			'route' => $route,
 			'params' => $paramsEncrypted,
-			'relativeAppPath' => basename(\Yii::$app->getBasePath()),
+			//		'relativeAppPath' => basename(\Yii::$app->getBasePath()),
 		];
 
 		// run worker
@@ -136,7 +147,7 @@ abstract class WorkerController extends \yii\console\Controller
 	/**
 	 *
 	 */
-	public function actionBuildIronWorker()
+	public function actionBuildWorker()
 	{
 		$iron = $this->getIron();
 		$name = $this->getIronWorkerName();
@@ -175,14 +186,31 @@ abstract class WorkerController extends \yii\console\Controller
 	/**
 	 *
 	 */
-	public function actionUploadIronWorker($build = true)
+	public function actionUploadWorker($build = true)
 	{
 		if ($build) {
-			$this->actionBuildIronWorker();
+			$this->actionBuildWorker();
 		}
 
 		// prepare config (based on current config?! extra iron.php / iron-local.php?!
 
 		// post worker code
+	}
+
+	public function globalOptions()
+	{
+		$options = ArrayHelper::merge(parent::globalOptions(), $this->getWorkerVars());
+		$options[] = 'ironComponentId';
+		return $options;
+	}
+
+	protected function getWorkerVars()
+	{
+		return [
+			'worker',
+			'workerTimeout',
+			'workerPriority',
+			'workerDelay',
+		];
 	}
 } 
