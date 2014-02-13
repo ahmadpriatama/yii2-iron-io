@@ -7,12 +7,11 @@
  * @copyright Copyright &copy; 2008-2014 spacedealer GmbH
  */
 
-
 namespace spacedealer\iron;
-
 
 use yii\base\Component;
 use yii\base\Exception;
+use yii\base\InvalidConfigException;
 use yii\helpers\FileHelper;
 
 class Iron extends Component
@@ -28,10 +27,27 @@ class Iron extends Component
 	public $projectId;
 
 	/**
+	 * @var
+	 */
+	public $payloadSecurityHash;
+
+	/**
 	 * @var array
 	 */
 	public $workerFoldersAndFiles = [
 		'except' => ['.git', '.csv', '.svn', '.zip', "/runtime", "/config"],
+	];
+
+	/**
+	 * @var array
+	 */
+	public $workerConfig = [
+		'worker' => [
+			'appPath' => '',
+			'tmpPath' => '',
+			'templatePath' => '',
+			'filesOptions' => [],
+		]
 	];
 
 	/**
@@ -50,11 +66,21 @@ class Iron extends Component
 	private $_worker;
 
 
+	/**
+	 * @throws \yii\base\InvalidConfigException
+	 */
 	public function init()
 	{
-
 		// test config
-
+		if (!isset($this->token)) {
+			throw new InvalidConfigException('spacedealer\iron\Iron token not set in config.');
+		}
+		if (!isset($this->projectId)) {
+			throw new InvalidConfigException('spacedealer\iron\Iron projectId not set in config.');
+		}
+		if (!isset($this->payloadSecurityHash)) {
+			throw new InvalidConfigException('spacedealer\iron\Iron payloadSecurityHash not set in config.');
+		}
 	}
 
 	/**
@@ -101,8 +127,8 @@ class Iron extends Component
 		return $this->_worker;
 	}
 
-	public function runWorker()
+	public function runWorker($route, $params)
 	{
-
+		// tbd
 	}
 }
