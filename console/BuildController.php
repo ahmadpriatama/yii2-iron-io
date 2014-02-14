@@ -56,17 +56,23 @@ class BuildController extends \yii\console\Controller
 		}
 	}
 
+	/**
+	 * @param string $name
+	 */
 	public function actionBuildWorker($name)
 	{
 		$iron = $this->getIron();
 		$iron->buildWorker($name);
 	}
 
+	/**
+	 * @param string $name
+	 * @param bool $build
+	 */
 	public function actionUploadWorker($name, $build = true)
 	{
 		$iron = $this->getIron();
 		$iron->uploadWorker($name, $build);
-
 	}
 
 //	public function actionCreateApp($name) {

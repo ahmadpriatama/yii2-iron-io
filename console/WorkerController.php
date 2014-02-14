@@ -9,6 +9,7 @@
 
 namespace spacedealer\iron\console;
 
+use spacedealer\iron\Iron;
 use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
@@ -49,35 +50,37 @@ abstract class WorkerController extends \yii\console\Controller
 	public $ironComponentId = 'iron';
 
 	/**
-	 * @return string
+	 * @return string name of the yii2 worker app
 	 */
-	public function getIronWorkerName()
+	public function getWorkerName()
 	{
-		return $this->getUniqueId();
+		return 'worker';
 	}
 
 	/**
 	 * @param string $route
 	 * @param array $params
 	 */
-	public function run($route, $params = [])
+	public function runAction($id, $params = [])
 	{
 		if (isset($params['worker']) && $params['worker'] == true) {
 			// start worker
 			// TODO: wait for worker - good for manual debugging
+			$route = $this->getRoute() . '/' . $id;
 			return $this->runAsIronWorker($route, $params);
 		} else if ($this->isRunningAsWorker()) {
 			// run as worker on iron worker
 			$iron = $this->getIron();
 
 			// decrypt params
-			$paramsDecrypted = Security::encrypt($params, $iron->workerPayloadPassword);
+			$paramsDecrypted = base64_decode($params);
+			$paramsDecrypted = Security::encrypt($paramsDecrypted, $iron->workerPayloadPassword);
 			$paramsDecrypted = Json::encode($paramsDecrypted);
 
-			return parent::run($route, $paramsDecrypted);
+			return parent::runAction($id, $paramsDecrypted);
 		} else {
 			// running locally
-			return parent::run($route, $params);
+			return parent::runAction($id, $params);
 		}
 	}
 
@@ -94,7 +97,7 @@ abstract class WorkerController extends \yii\console\Controller
 		$workerVars = $this->getWorkerVars();
 
 		foreach ($params as $name => $value) {
-			if (in_array($name, $workerVars)) {
+			if (!is_int($name) && in_array($name, $workerVars)) {
 				$this->$name = $params[$name];
 				unset($params[$name]);
 			}
@@ -113,6 +116,8 @@ abstract class WorkerController extends \yii\console\Controller
 		// prepare payload with encrypted params
 		$paramsEncrypted = Json::encode($params);
 		$paramsEncrypted = Security::encrypt($paramsEncrypted, $iron->workerPayloadPassword);
+		$paramsEncrypted = base64_encode($paramsEncrypted);
+
 		$payload = [
 			'route' => $route,
 			'params' => $paramsEncrypted,
@@ -122,7 +127,7 @@ abstract class WorkerController extends \yii\console\Controller
 		// run worker
 		$worker = $iron->getWorker();
 		try {
-			$res = $worker->postTask($this->getIronWorkerName(), $payload, $options);
+			$res = $worker->postTask($this->getWorkerName(), $payload, $options);
 		} catch (\Exception $e) {
 			\Yii::error($e->getMessage(), 'spacedealer.iron');
 			$res = false;
@@ -132,9 +137,12 @@ abstract class WorkerController extends \yii\console\Controller
 		return $res;
 	}
 
+	/**
+	 * @return bool Wheter running as iron worker or not
+	 */
 	protected function isRunningAsWorker()
 	{
-		return (defined(YII_IRON_ENV) && YII_IRON_ENV == 1);
+		return Iron::runningAsIronWorker();
 	}
 
 	/**

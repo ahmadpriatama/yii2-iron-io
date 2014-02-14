@@ -150,7 +150,7 @@ class Iron extends Component
 			try {
 				$this->_cache = new \IronCache([
 					'token' => $this->getToken('cache'),
-					'projectId' => $this->getProjectId('cache'),
+					'project_id' => $this->getProjectId('cache'),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -170,7 +170,7 @@ class Iron extends Component
 			try {
 				$this->_mq = new \IronMQ([
 					'token' => $this->getToken('mq'),
-					'projectId' => $this->getProjectId('mq'),
+					'project_id' => $this->getProjectId('mq'),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -199,7 +199,7 @@ class Iron extends Component
 			try {
 				$this->_worker = new \IronWorker([
 					'token' => $this->getToken('worker'),
-					'projectId' => $this->getProjectId('worker'),
+					'project_id' => $this->getProjectId('worker'),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -215,6 +215,13 @@ class Iron extends Component
 		// tbd
 	}
 
+	public static function runningAsIronWorker()
+	{
+		global $argv;
+		// test for argv structure and getArgs function in default bootstrap file runner.php
+		return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('getArgs'));
+	}
+
 	/**
 	 * @return array
 	 */
@@ -223,9 +230,10 @@ class Iron extends Component
 		global $argv;
 		static $args;
 
-		if (!defined(YII_IRON_ENV) || YII_IRON_ENV == false) {
+		if (!self::runningAsIronWorker()) {
 			throw new \RuntimeException('Not running as iron worker.');
 		}
+
 		if (!isset($args)) {
 
 			$args = ['task_id' => null, 'dir' => null, 'payload' => [], 'config' => null];
@@ -310,19 +318,17 @@ class Iron extends Component
 		// copy directories
 		foreach ($config as $directory => $dirConfig) {
 
-			// resolve source path
+			// resolve source path - src supports aliases
 			$src = \Yii::getAlias($dirConfig['source']);
 
-			// resolve destination path
-			$dst = $dirConfig['destination'];
-			// missing @ironworkerBuildPath alias = relative path
-			if (strpos($dst, '@ironworkerBuildPath') === false) {
-				$dst = $buildPath . DIRECTORY_SEPARATOR . $dst;
-			} else {
-				$dst = \Yii::getAlias($dirConfig['destination']);
-			}
+			// destination path - always relative to build path
+			$dst = $buildPath . DIRECTORY_SEPARATOR . $dirConfig['destination'];
 
 			$options = $dirConfig['options'];
+
+			if (!isset($options['basePath'])) {
+				$options['basePath'] = realpath($src);
+			}
 
 			\Yii::info("Copy $src > $dst");
 
@@ -345,21 +351,23 @@ class Iron extends Component
 
 		$config = $this->getConfigForWorker($name);
 		$worker = $this->getWorker();
-		$appPath = \Yii::getAlias($config['app']['source']);
+		$appSrcPath = \Yii::getAlias($config['app']['source']);
+		$appPathDst = \Yii::getAlias($config['app']['destination']);
 		$buildPath = \Yii::getAlias($this->workerBuildPath . DIRECTORY_SEPARATOR . $name);
 
-		// prepare worker app bootstrap file path
-		$bootstrapFile = $appPath . DIRECTORY_SEPARATOR . "run.php";
+		// prepare worker app bootstrap file path - relative to worker path
+		$bootstrapFile = $appPathDst . DIRECTORY_SEPARATOR . 'run.php';
 
 		// prepare zip file path
 		$zipFile = $buildPath . DIRECTORY_SEPARATOR . "ironworker.zip";
 
 		// prepare yii2 worker app config (used when running app as iron worker)
-		$appConfigFile = $buildPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
+		$appConfigFile = $appSrcPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
 		$appConfig = Json::encode(require($appConfigFile));
 
 		// push and deploy worker code
 		$res = $worker->postCode($bootstrapFile, $zipFile, $name, ['config' => $appConfig]);
+		return $res;
 	}
 
 	/**
