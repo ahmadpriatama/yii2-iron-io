@@ -39,7 +39,16 @@ class Cache extends \yii\caching\Cache
 	public function init()
 	{
 		parent::init();
-		$this->_cache = \Yii::$app->getComponent($this->componentId)->getCache();
+		$iron = $this->getIron();
+		$this->_cache = $iron->getCache();
+	}
+
+	/**
+	 * @return null|\spacedealer\iron\Iron
+	 */
+	protected function getIron()
+	{
+		return \Yii::$app->getComponent($this->ironComponentId);
 	}
 
 	/**

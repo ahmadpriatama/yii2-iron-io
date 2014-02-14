@@ -18,38 +18,29 @@ use yii\helpers\Json;
 class Iron extends Component
 {
 	/**
-	 * @var
+	 * @var string|array
 	 */
 	public $token;
 
 	/**
-	 * @var
+	 * @var string|array
 	 */
 	public $projectId;
 
 	/**
 	 * @var
 	 */
-	public $payloadSecurityHash;
+	public $workerPayloadPassword;
+
+	/**
+	 * @var
+	 */
+	public $workerBuildPath = '@runtime/ironworker';
 
 	/**
 	 * @var array
 	 */
-	public $workerFoldersAndFiles = [
-		'except' => ['.git', '.csv', '.svn', '.zip', "/runtime", "/config"],
-	];
-
-	/**
-	 * @var array
-	 */
-	public $workerConfig = [
-		'worker' => [
-			'appPath' => '',
-			'tmpPath' => '',
-			'templatePath' => '',
-			'filesOptions' => [],
-		]
-	];
+	public $workerConfig;
 
 	/**
 	 * @var \IronCache
@@ -79,9 +70,74 @@ class Iron extends Component
 		if (!isset($this->projectId)) {
 			throw new InvalidConfigException('spacedealer\iron\Iron projectId not set in config.');
 		}
-		if (!isset($this->payloadSecurityHash)) {
-			throw new InvalidConfigException('spacedealer\iron\Iron payloadSecurityHash not set in config.');
+
+
+		// use default worker config if none is configured
+		if (empty($this->workerConfig)) {
+			$this->workerConfig = $this->getDefaultWorkerConfig();
 		}
+	}
+
+	protected function getToken($service)
+	{
+		if (is_array($this->token)) {
+			if (!isset($this->token[$service])) {
+				throw new InvalidConfigException("spacedealer\iron\Iron token for service '$service' not set in config.");
+			}
+			$token = $this->token[$service];
+		} else {
+			$token = $this->token;
+		}
+		return $token;
+	}
+
+	protected function getProjectId($service)
+	{
+		if (is_array($this->projectId)) {
+			if (!isset($this->projectId[$service])) {
+				throw new InvalidConfigException("spacedealer\iron\Iron projectId for service '$service' not set in config.");
+			}
+			$projectId = $this->projectId[$service];
+		} else {
+			$projectId = $this->projectId;
+		}
+		return $projectId;
+	}
+
+	public function getDefaultWorkerConfig()
+	{
+		return [
+			'worker' => [
+				'app' => [
+					'source' => '@ironWorkerApp',
+					'destination' => 'app',
+					'options' => [
+						'except' => [
+							'/config',
+							'/runtime',
+							'.git',
+							'.csv',
+							'.svn',
+							'.zip',
+						]
+					],
+				],
+				'vendor' => [
+					'source' => '@vendor',
+					'destination' => 'vendor',
+					'options' => [
+						'except' => [
+							'/config',
+							'/runtime',
+							'.git',
+							'.csv',
+							'.svn',
+							'.zip',
+						]
+					],
+				],
+			],
+		];
 	}
 
 	/**
@@ -89,6 +145,18 @@ class Iron extends Component
 	 */
 	public function getCache()
 	{
+		if (!isset($this->_cache)) {
+			// init cache
+			try {
+				$this->_cache = new \IronCache([
+					'token' => $this->getToken('cache'),
+					'projectId' => $this->getProjectId('cache'),
+				]);
+			} catch (\Exception $e) {
+				\Yii::error($e->getMessage(), 'spacedealer.iron');
+				throw new Exception('Error in IronCache: ' . $e->getMessage(), 0, $e);
+			}
+		}
 		return $this->_cache;
 	}
 
@@ -98,14 +166,15 @@ class Iron extends Component
 	public function getMQ()
 	{
 		if (!isset($this->_mq)) {
+			// init mq
 			try {
 				$this->_mq = new \IronMQ([
-					'token' => $this->token,
-					'projectId' => $this->projectId,
+					'token' => $this->getToken('mq'),
+					'projectId' => $this->getProjectId('mq'),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
-				throw new Exception('Error in IronMQ: ' . $e->getMessage());
+				throw new Exception('Error in IronMQ: ' . $e->getMessage(), 0, $e);
 			}
 		}
 		return $this->_mq;
@@ -116,15 +185,28 @@ class Iron extends Component
 	 */
 	public function getWorker()
 	{
-		try {
-			$this->_worker = new \IronWorker([
-				'token' => $this->token,
-				'projectId' => $this->projectId,
-			]);
-		} catch (\Exception $e) {
-			\Yii::error($e->getMessage(), 'spacedealer.iron');
-			throw new Exception('Error in IronWorker: ' . $e->getMessage());
+		if (!isset($this->_worker)) {
+			// test worker config & init worker
+			if (!isset($this->workerPayloadPassword)) {
+				throw new InvalidConfigException('spacedealer\iron\Iron workerPayloadPassword not set in config.');
+			}
+
+			if (!isset($this->workerBuildPath)) {
+				throw new InvalidConfigException('spacedealer\iron\Iron workerBuildPath not set in config.');
+			}
+
+			// init worker
+			try {
+				$this->_worker = new \IronWorker([
+					'token' => $this->getToken('worker'),
+					'projectId' => $this->getProjectId('worker'),
+				]);
+			} catch (\Exception $e) {
+				\Yii::error($e->getMessage(), 'spacedealer.iron');
+				throw new Exception('Error in IronWorker: ' . $e->getMessage(), 0, $e);
+			}
 		}
+
 		return $this->_worker;
 	}
 
@@ -183,6 +265,101 @@ class Iron extends Component
 		}
 
 		return $args;
+	}
+
+	protected function getConfigForWorker($name)
+	{
+		// get worker config
+		if (!isset($this->workerConfig[$name])) {
+			throw new InvalidConfigException("Build configuration not found for worker $name.");
+		}
+
+		$config = $this->workerConfig[$name];
+
+		// test for required config settings
+		// worker app directory required
+		if (!isset($config['app'])) {
+			throw new InvalidConfigException("Parameter app is not set in build configuration for worker $name.");
+		}
+		// vendor directory required - yii2 framework & iron extension
+		if (!isset($config['vendor'])) {
+			throw new InvalidConfigException("Parameter vendor is not set in build configuration for worker $name.");
+		}
+
+		return $this->workerConfig[$name];
+	}
+
+	/**
+	 * @param $name Name of worker app.
+	 * @throws \yii\base\InvalidConfigException
+	 */
+	public function buildWorker($name)
+	{
+		$config = $this->getConfigForWorker($name);
+
+		// prepare build folder (create, cleanup if it already exists)
+		$buildPath = \Yii::getAlias($this->workerBuildPath . DIRECTORY_SEPARATOR . $name);
+		\Yii::setAlias('@ironworkerBuildPath', $buildPath);
+
+		// remove old build directory
+		FileHelper::removeDirectory($buildPath);
+
+		// create new empty build directory
+		FileHelper::createDirectory($buildPath);
+
+		// copy directories
+		foreach ($config as $directory => $dirConfig) {
+
+			// resolve source path
+			$src = \Yii::getAlias($dirConfig['source']);
+
+			// resolve destination path
+			$dst = $dirConfig['destination'];
+			// missing @ironworkerBuildPath alias = relative path
+			if (strpos($dst, '@ironworkerBuildPath') === false) {
+				$dst = $buildPath . DIRECTORY_SEPARATOR . $dst;
+			} else {
+				$dst = \Yii::getAlias($dirConfig['destination']);
+			}
+
+			$options = $dirConfig['options'];
+
+			\Yii::info("Copy $src > $dst");
+
+			// copy directory
+			FileHelper::copyDirectory($src, $dst, $options);
+		}
+
+		// zip all
+		\IronWorker::zipDirectory($buildPath, $buildPath . DIRECTORY_SEPARATOR . 'ironworker.zip', true);
+	}
+
+	/**
+	 *
+	 */
+	public function uploadWorker($name, $build = true)
+	{
+		if ($build) {
+			$this->buildWorker($name);
+		}
+
+		$config = $this->getConfigForWorker($name);
+		$worker = $this->getWorker();
+		$appPath = \Yii::getAlias($config['app']['source']);
+		$buildPath = \Yii::getAlias($this->workerBuildPath . DIRECTORY_SEPARATOR . $name);
+
+		// prepare worker app bootstrap file path
+		$bootstrapFile = $appPath . DIRECTORY_SEPARATOR . "run.php";
+
+		// prepare zip file path
+		$zipFile = $buildPath . DIRECTORY_SEPARATOR . "ironworker.zip";
+
+		// prepare yii2 worker app config (used when running app as iron worker)
+		$appConfigFile = $buildPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
+		$appConfig = Json::encode(require($appConfigFile));
+
+		// push and deploy worker code
+		$res = $worker->postCode($bootstrapFile, $zipFile, $name, ['config' => $appConfig]);
 	}
 
 	/**

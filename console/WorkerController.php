@@ -11,6 +11,7 @@ namespace spacedealer\iron\console;
 
 use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
+use yii\helpers\FileHelper;
 use yii\helpers\Json;
 use yii\helpers\Security;
 
@@ -70,7 +71,7 @@ abstract class WorkerController extends \yii\console\Controller
 			$iron = $this->getIron();
 
 			// decrypt params
-			$paramsDecrypted = Security::encrypt($params, $iron->payloadSecurityHash);
+			$paramsDecrypted = Security::encrypt($params, $iron->workerPayloadPassword);
 			$paramsDecrypted = Json::encode($paramsDecrypted);
 
 			return parent::run($route, $paramsDecrypted);
@@ -111,7 +112,7 @@ abstract class WorkerController extends \yii\console\Controller
 
 		// prepare payload with encrypted params
 		$paramsEncrypted = Json::encode($params);
-		$paramsEncrypted = Security::encrypt($paramsEncrypted, $iron->payloadSecurityHash);
+		$paramsEncrypted = Security::encrypt($paramsEncrypted, $iron->workerPayloadPassword);
 		$payload = [
 			'route' => $route,
 			'params' => $paramsEncrypted,
@@ -142,59 +143,6 @@ abstract class WorkerController extends \yii\console\Controller
 	protected function getIron()
 	{
 		return \Yii::$app->getComponent($this->ironComponentId);
-	}
-
-	/**
-	 *
-	 */
-	public function actionBuildWorker()
-	{
-		$iron = $this->getIron();
-		$name = $this->getIronWorkerName();
-
-		// get worker config
-		if (!isset($iron->workerConfig[$name])) {
-			throw new InvalidConfigException("Build configuration not found for worker $name.");
-		}
-
-		$config = $iron->workerConfig[$name];
-
-		// test for required config settings
-		if (!isset($config['appPath'])) {
-			throw new InvalidConfigException("Parameter appPath is not set in build configuration for worker $name.");
-		}
-
-		// main focus: easy config & slim zip files
-
-		// prepare tmp folder (create, cleanup if it already exists)
-		$buildPath = $iron->buildPath . DIRECTORY_SEPARATOR . $name;
-
-		// buildconfig? name => params like files/folder, worker tmp for bin files.. etc--?!
-
-		// copy template dir
-		if (isset($config['templatePath'])) {
-			$templatePath = $config['templatePath'];
-		}
-
-		// copy app
-
-		// copy composer dependencies
-
-		// zip it
-	}
-
-	/**
-	 *
-	 */
-	public function actionUploadWorker($build = true)
-	{
-		if ($build) {
-			$this->actionBuildWorker();
-		}
-
-		// prepare config (based on current config?! extra iron.php / iron-local.php?!
-
-		// post worker code
 	}
 
 	public function globalOptions()
