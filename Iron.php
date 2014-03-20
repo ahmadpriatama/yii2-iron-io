@@ -17,6 +17,15 @@ use yii\helpers\Json;
 
 class Iron extends Component
 {
+	const SERVICE_CACHE = 'cache';
+	const SERVICE_MQ = 'mq';
+	const SERVICE_WORKER = 'worker';
+
+	public static $services = array(
+		self::SERVICE_CACHE,
+		self::SERVICE_MQ,
+		self::SERVICE_WORKER,
+	);
 	/**
 	 * @var string|array
 	 */
@@ -78,8 +87,11 @@ class Iron extends Component
 		}
 	}
 
-	protected function getToken($service)
+	public function getToken($service)
 	{
+		if (!in_array($service, self::$services)) {
+			throw new InvalidConfigException("spacedealer\iron\Iron '$service' is not supported.");
+		}
 		if (is_array($this->token)) {
 			if (!isset($this->token[$service])) {
 				throw new InvalidConfigException("spacedealer\iron\Iron token for service '$service' not set in config.");
@@ -91,8 +103,12 @@ class Iron extends Component
 		return $token;
 	}
 
-	protected function getProjectId($service)
+	public function getProjectId($service)
 	{
+		if (!in_array($service, self::$services)) {
+			throw new InvalidConfigException("spacedealer\iron\Iron '$service' is not supported.");
+		}
+
 		if (is_array($this->projectId)) {
 			if (!isset($this->projectId[$service])) {
 				throw new InvalidConfigException("spacedealer\iron\Iron projectId for service '$service' not set in config.");
@@ -107,7 +123,7 @@ class Iron extends Component
 	public function getDefaultWorkerConfig()
 	{
 		return [
-			'worker' => [
+			self::SERVICE_WORKER => [
 				'app' => [
 					'source' => '@ironWorkerApp',
 					'destination' => 'app',
@@ -149,8 +165,8 @@ class Iron extends Component
 			// init cache
 			try {
 				$this->_cache = new \IronCache([
-					'token' => $this->getToken('cache'),
-					'project_id' => $this->getProjectId('cache'),
+					'token' => $this->getToken(self::SERVICE_CACHE),
+					'project_id' => $this->getProjectId(self::SERVICE_CACHE),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -169,8 +185,8 @@ class Iron extends Component
 			// init mq
 			try {
 				$this->_mq = new \IronMQ([
-					'token' => $this->getToken('mq'),
-					'project_id' => $this->getProjectId('mq'),
+					'token' => $this->getToken(self::SERVICE_MQ),
+					'project_id' => $this->getProjectId(self::SERVICE_MQ),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -198,8 +214,8 @@ class Iron extends Component
 			// init worker
 			try {
 				$this->_worker = new \IronWorker([
-					'token' => $this->getToken('worker'),
-					'project_id' => $this->getProjectId('worker'),
+					'token' => $this->getToken(self::SERVICE_WORKER),
+					'project_id' => $this->getProjectId(self::SERVICE_WORKER),
 				]);
 			} catch (\Exception $e) {
 				\Yii::error($e->getMessage(), 'spacedealer.iron');
@@ -375,7 +391,6 @@ class Iron extends Component
 	 */
 	public static function getTaskId()
 	{
-
 		$args = self::getArgs();
 		return $args['task_Id'];
 	}
