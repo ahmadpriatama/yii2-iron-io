@@ -3,9 +3,9 @@ Iron.io Extension for Yii 2
 
 **Attention**: Please do not use in production environments. It‘s WIP.
 
-This extension integrates [iron.io](http://www.iron.io/) services in the Yii2 Framework.
+This extension integrates [iron.io](http://www.iron.io/) services with the Yii2 Framework.
 
-tbd. This Yii 2 console applications remotely in iron.io and locally.
+This extension provides building and uploading of iron worker based console applications. You can run them remotely in iron.io or locally.
 
 This extension is heavily expired by the [yiiron](https://github.com/br0sk/yiiron) extension by [br0sk](https://github.com/br0sk) for [yii v1](https://github.com/yiisoft/yii).
 
@@ -23,6 +23,7 @@ This yii2 extension depends on the official iron.io php packages:
 * [iron_worker](https://github.com/iron-io/iron_worker_php)
 * [iron_cache](https://github.com/iron-io/iron_cache_php)
 * [iron_mq](https://github.com/iron-io/iron_mq_php)
+
 
 Installation
 ------------
