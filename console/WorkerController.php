@@ -10,10 +10,10 @@
 namespace spacedealer\iron\console;
 
 use spacedealer\iron\Iron;
+use yii\base\Security;
 use yii\di\Instance;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Json;
-use yii\helpers\Security;
 
 
 /**
@@ -44,21 +44,27 @@ abstract class WorkerController extends \yii\console\Controller
     public $workerDelay = 0;
 
     /**
-     * @var string|\spacedealer\iron\Iron Iron component ID. you can change this on cli to use a different configuration setting
+     * @var string|\spacedealer\iron\Iron Iron component ID. You may change this to use different configuration settings.
      */
     public $iron = 'iron';
 
     /**
+     * @var string|\yii\base\Security Security component ID. You may change this to use different configuration settings.
+     */
+    public $security = 'security';
+
+    /**
      * @inheritdoc
      */
-    public function beforeAction($action)
+    public function init()
     {
-        // init iron component
-        if (is_string($this->iron)) {
-            $this->iron = Instance::ensure($this->iron, Iron::className());
-        }
+        parent::init();
 
-        return parent::beforeAction($action);
+        // init security component
+        $this->security = Instance::ensure($this->security, Security::className());
+
+        // init iron component
+        $this->iron = Instance::ensure($this->iron, Iron::className());
     }
 
     /**
@@ -78,17 +84,14 @@ abstract class WorkerController extends \yii\console\Controller
     public function runAction($id, $params = [])
     {
         if (isset($params['worker']) && $params['worker'] == true) {
-            // start worker
-            // TODO: wait for worker - good for manual debugging
+            // call worker
+            // TODO: wait for worker - for manual debugging
             $route = $this->getRoute() . '/' . $id;
             return $this->runAsIronWorker($route, $params);
         } else if ($this->isRunningAsWorker()) {
             // run as worker on iron worker
-            // decrypt params
-            $paramsDecrypted = base64_decode($params);
-            $paramsDecrypted = Security::encrypt($paramsDecrypted, $this->iron->workerPayloadPassword);
-            $paramsDecrypted = Json::encode($paramsDecrypted);
-
+            // decrypt params first
+            $paramsDecrypted = $this->decryptParams($params);
             return parent::runAction($id, $paramsDecrypted);
         } else {
             // running locally
@@ -124,14 +127,11 @@ abstract class WorkerController extends \yii\console\Controller
         ];
 
         // prepare payload with encrypted params
-        $paramsEncrypted = Json::encode($params);
-        $paramsEncrypted = Security::encrypt($paramsEncrypted, $this->iron->workerPayloadPassword);
-        $paramsEncrypted = base64_encode($paramsEncrypted);
+        $paramsEncrypted = $this->encryptParams($params);
 
         $payload = [
             'route' => $route,
             'params' => $paramsEncrypted,
-            //		'relativeAppPath' => basename(\Yii::$app->getBasePath()),
         ];
 
         // run worker
@@ -159,6 +159,7 @@ abstract class WorkerController extends \yii\console\Controller
     {
         $options = ArrayHelper::merge(parent::options($actionId), $this->getWorkerOptions());
         $options[] = 'iron';
+        $options[] = 'security';
         return $options;
     }
 
@@ -170,5 +171,31 @@ abstract class WorkerController extends \yii\console\Controller
             'workerPriority',
             'workerDelay',
         ];
+    }
+
+    /**
+     * Encrypt payload parameters
+     *
+     * @param array $params
+     * @return string
+     */
+    protected function encryptParams($params)
+    {
+        $paramsEncrypted = Json::encode($params);
+        $paramsEncrypted = $this->security->encryptByPassword($paramsEncrypted, $this->iron->workerPayloadPassword);
+        return base64_encode($paramsEncrypted);
+    }
+
+    /**
+     * Decrypt payload parameters
+     *
+     * @param array $params
+     * @return string
+     */
+    protected function decryptParams($params)
+    {
+        $paramsDecrypted = base64_decode($params);
+        $paramsDecrypted = $this->security->decryptByPassword($paramsDecrypted, $this->iron->workerPayloadPassword);
+        return Json::encode($paramsDecrypted);
     }
 } 

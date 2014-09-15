@@ -19,10 +19,10 @@
 	},
 	"minimum-stability": "dev",
 	"require": {
-		"iron-io/iron_core": "0.1.6",
-		"iron-io/iron_worker": "1.4.1",
-		"iron-io/iron_mq": "1.5",
-		"iron-io/iron_cache": "0.1.3"
+		"iron-io/iron_core": "~0.0",
+		"iron-io/iron_worker": "~1.0",
+		"iron-io/iron_mq": "~1.0",
+		"iron-io/iron_cache": "~0.0"
 	},
 	"require-dev": {
 		"php": ">=5.4.0",

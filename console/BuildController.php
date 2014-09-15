@@ -28,14 +28,10 @@ class BuildController extends \yii\console\Controller
     /**
      * @inheritdoc
      */
-    public function beforeAction($action)
+    public function init()
     {
         // init iron component
-        if (is_string($this->iron)) {
-            $this->iron = Instance::ensure($this->iron, Iron::className());
-        }
-
-        return parent::beforeAction($action);
+        $this->iron = Instance::ensure($this->iron, Iron::className());
     }
 
     public function actionList()
