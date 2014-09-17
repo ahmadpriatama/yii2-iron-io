@@ -206,11 +206,11 @@ class BuildController extends \yii\console\Controller
 
         // zip all
         $zipFile = $buildPath . '.zip';
-        $this->stdout("\n\nZip directory:\n", Console::FG_BLUE);
+        $this->stdout("\nZip directory:\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
         \IronWorker::zipDirectory($buildPath, $zipFile, true);
 
-        $this->stdout("\n\nBuilding done.\n\n", Console::FG_BLUE);
+        $this->stdout("\nBuilding done.\n\n", Console::FG_BLUE);
     }
 
     /**
@@ -224,7 +224,7 @@ class BuildController extends \yii\console\Controller
 
     /**
      * @param string $name Worker name
-     * @param bool $build Wheter to build worker before upload or not
+     * @param bool $build Whether to build worker before upload or not
      * @return mixed
      */
     protected function uploadWorker($name, $build = true)
@@ -232,6 +232,8 @@ class BuildController extends \yii\console\Controller
         if ($build) {
             $this->buildWorker($name);
         }
+
+        $this->stdout("\nUploading worker '$name'\n", Console::FG_BLUE);
 
         $config = $this->iron->getConfigForWorker($name);
         $worker = $this->iron->getWorker();
@@ -247,10 +249,14 @@ class BuildController extends \yii\console\Controller
 
         // prepare yii2 worker app config (used when running app as iron worker)
         $appConfigFile = $appSrcPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
-        $appConfig = Json::encode(require($appConfigFile));
+        $appConfig = require($appConfigFile);
+        $appConfig = Json::encode($appConfig);
 
         // push and deploy worker code
         $res = $worker->postCode($bootstrapFile, $zipFile, $name, ['config' => $appConfig]);
+
+        $this->stdout("\nUploading done.\n\n", Console::FG_BLUE);
+
         return $res;
     }
 
