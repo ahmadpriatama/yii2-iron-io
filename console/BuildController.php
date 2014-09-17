@@ -205,7 +205,7 @@ class BuildController extends \yii\console\Controller
         $this->trigger(self::EVENT_BUILD_BEFORE_ZIP);
 
         // zip all
-        $zipFile = $buildPath . DIRECTORY_SEPARATOR . $this->iron->workerZipFile;
+        $zipFile = $buildPath . '.zip';
         $this->stdout("\n\nZip directory:\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
         \IronWorker::zipDirectory($buildPath, $zipFile, true);
@@ -243,7 +243,7 @@ class BuildController extends \yii\console\Controller
         $bootstrapFile = $appPathDst . DIRECTORY_SEPARATOR . 'run.php';
 
         // prepare zip file path
-        $zipFile = $buildPath . DIRECTORY_SEPARATOR . $this->iron->workerZipFile;
+        $zipFile = $buildPath . '.zip';
 
         // prepare yii2 worker app config (used when running app as iron worker)
         $appConfigFile = $appSrcPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";

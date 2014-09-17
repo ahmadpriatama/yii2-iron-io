@@ -54,11 +54,6 @@ class Iron extends Component
     public $workerConfig;
 
     /**
-     * @var string Name of zip file
-     */
-    public $workerZipFile = 'worker.zip';
-
-    /**
      * @var string Path to composer executable
      */
     public $composerBin = 'composer';
