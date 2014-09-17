@@ -208,7 +208,7 @@ class BuildController extends \yii\console\Controller
         $zipFile = $buildPath . DIRECTORY_SEPARATOR . $this->iron->workerZipFile;
         $this->stdout("\n\nZip directory:\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
-        // \IronWorker::zipDirectory($buildPath, $zipFile, true);
+        \IronWorker::zipDirectory($buildPath, $zipFile, true);
 
         $this->stdout("\n\nBuilding done.\n\n", Console::FG_BLUE);
     }
