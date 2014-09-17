@@ -12,7 +12,6 @@ namespace spacedealer\iron;
 use yii\base\Component;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
-use yii\helpers\FileHelper;
 use yii\helpers\Json;
 
 class Iron extends Component
@@ -47,12 +46,31 @@ class Iron extends Component
     /**
      * @var
      */
-    public $workerBuildPath = '@runtime/ironworker';
+    public $workerBuildPath = '@runtime/iron';
 
     /**
      * @var array
      */
     public $workerConfig;
+
+    /**
+     * @var string Name of zip file
+     */
+    public $workerZipFile = 'worker.zip';
+
+    /**
+     * @var string Path to composer executable
+     */
+    public $composerBin = 'composer';
+
+    /**
+     * @var array Default composer options. Can be replaced by options setting in [[$workerConfig]]
+     */
+    public $composerOptions = [
+        '--no-interaction',
+        '--prefer-dist',
+        '--no-dev',
+    ];
 
     /**
      * @var \IronCache
@@ -77,10 +95,10 @@ class Iron extends Component
     {
         // test config
         if (!isset($this->token)) {
-            throw new InvalidConfigException('spacedealer\iron\Iron token not set in config.');
+            throw new InvalidConfigException('token not set in config.');
         }
         if (!isset($this->projectId)) {
-            throw new InvalidConfigException('spacedealer\iron\Iron projectId not set in config.');
+            throw new InvalidConfigException('projectId not set in config.');
         }
 
 
@@ -93,11 +111,11 @@ class Iron extends Component
     public function getToken($service)
     {
         if (!in_array($service, self::$services)) {
-            throw new InvalidConfigException("spacedealer\iron\Iron '$service' is not supported.");
+            throw new InvalidConfigException("Service '$service' is not supported.");
         }
         if (is_array($this->token)) {
             if (!isset($this->token[$service])) {
-                throw new InvalidConfigException("spacedealer\iron\Iron token for service '$service' not set in config.");
+                throw new InvalidConfigException("token for service '$service' not set in config.");
             }
             $token = $this->token[$service];
         } else {
@@ -109,12 +127,12 @@ class Iron extends Component
     public function getProjectId($service)
     {
         if (!in_array($service, self::$services)) {
-            throw new InvalidConfigException("spacedealer\iron\Iron '$service' is not supported.");
+            throw new InvalidConfigException("Service '$service' is not supported.");
         }
 
         if (is_array($this->projectId)) {
             if (!isset($this->projectId[$service])) {
-                throw new InvalidConfigException("spacedealer\iron\Iron projectId for service '$service' not set in config.");
+                throw new InvalidConfigException("projectId for service '$service' not set in config.");
             }
             $projectId = $this->projectId[$service];
         } else {
@@ -128,6 +146,7 @@ class Iron extends Component
         return [
             self::SERVICE_WORKER => [
                 'app' => [
+                    'mode' => 'copy',
                     'source' => '@ironWorkerApp',
                     'destination' => 'app',
                     'options' => [
@@ -142,17 +161,11 @@ class Iron extends Component
                     ],
                 ],
                 'vendor' => [
+                    'mode' => 'composer',
                     'source' => '@vendor',
-                    'destination' => 'vendor',
                     'options' => [
-                        'except' => [
-                            '/config',
-                            '/runtime',
-                            '.git',
-                            '.csv',
-                            '.svn',
-                            '.zip',
-                        ]
+                        '--prefer-dest',
+                        '--no-dev',
                     ],
                 ],
             ],
@@ -207,11 +220,11 @@ class Iron extends Component
         if (!isset($this->_worker)) {
             // test worker config & init worker
             if (!isset($this->workerPayloadPassword)) {
-                throw new InvalidConfigException('spacedealer\iron\Iron workerPayloadPassword not set in config.');
+                throw new InvalidConfigException('workerPayloadPassword not set in config.');
             }
 
             if (!isset($this->workerBuildPath)) {
-                throw new InvalidConfigException('spacedealer\iron\Iron workerBuildPath not set in config.');
+                throw new InvalidConfigException('workerBuildPath not set in config.');
             }
 
             // init worker
@@ -303,7 +316,7 @@ class Iron extends Component
      * @return array
      * @throws \yii\base\InvalidConfigException
      */
-    protected function getConfigForWorker($name)
+    public function getConfigForWorker($name)
     {
         // get worker config
         if (!isset($this->workerConfig[$name])) {
@@ -317,90 +330,8 @@ class Iron extends Component
         if (!isset($config['app'])) {
             throw new InvalidConfigException("Parameter app is not set in build configuration for worker $name.");
         }
-        // vendor directory required - yii2 framework & iron extension
-        if (!isset($config['vendor'])) {
-            throw new InvalidConfigException("Parameter vendor is not set in build configuration for worker $name.");
-        }
 
         return $this->workerConfig[$name];
-    }
-
-    /**
-     * Build worker
-     *
-     * @param $name string Name of worker app.
-     * @throws \yii\base\InvalidConfigException
-     * @todo git & composer dependencies?
-     */
-    public function buildWorker($name)
-    {
-        $config = $this->getConfigForWorker($name);
-
-        // prepare build folder (create, cleanup if it already exists)
-        $buildPath = \Yii::getAlias($this->workerBuildPath . DIRECTORY_SEPARATOR . $name);
-        \Yii::setAlias('@ironworkerBuildPath', $buildPath);
-
-        // remove old build directory
-        FileHelper::removeDirectory($buildPath);
-
-        // create new empty build directory
-        FileHelper::createDirectory($buildPath);
-
-        // copy directories
-        foreach ($config as $dirConfig) {
-
-            // resolve source path - src supports aliases
-            $src = \Yii::getAlias($dirConfig['source']);
-
-            // destination path - always relative to build path
-            $dst = $buildPath . DIRECTORY_SEPARATOR . $dirConfig['destination'];
-
-            $options = $dirConfig['options'];
-
-            if (!isset($options['basePath'])) {
-                $options['basePath'] = realpath($src);
-            }
-
-            \Yii::info("Copy $src > $dst");
-
-            // copy directory
-            FileHelper::copyDirectory($src, $dst, $options);
-        }
-
-        // zip all
-        \IronWorker::zipDirectory($buildPath, $buildPath . DIRECTORY_SEPARATOR . 'ironworker.zip', true);
-    }
-
-    /**
-     * @param string $name Worker name
-     * @param bool $build Wheter to build worker before upload or not
-     * @return mixed
-     */
-    public function uploadWorker($name, $build = true)
-    {
-        if ($build) {
-            $this->buildWorker($name);
-        }
-
-        $config = $this->getConfigForWorker($name);
-        $worker = $this->getWorker();
-        $appSrcPath = \Yii::getAlias($config['app']['source']);
-        $appPathDst = \Yii::getAlias($config['app']['destination']);
-        $buildPath = \Yii::getAlias($this->workerBuildPath . DIRECTORY_SEPARATOR . $name);
-
-        // prepare worker app bootstrap file path - relative to worker path
-        $bootstrapFile = $appPathDst . DIRECTORY_SEPARATOR . 'run.php';
-
-        // prepare zip file path
-        $zipFile = $buildPath . DIRECTORY_SEPARATOR . "ironworker.zip";
-
-        // prepare yii2 worker app config (used when running app as iron worker)
-        $appConfigFile = $appSrcPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
-        $appConfig = Json::encode(require($appConfigFile));
-
-        // push and deploy worker code
-        $res = $worker->postCode($bootstrapFile, $zipFile, $name, ['config' => $appConfig]);
-        return $res;
     }
 
     /**
