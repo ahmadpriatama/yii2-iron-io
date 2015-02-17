@@ -120,10 +120,13 @@ class BuildController extends \yii\console\Controller
             if (isset($dirConfig['mode']) && isset($dirConfig['mode']) == 'composer') {
 
                 if (!isset($dirConfig['source'])) {
-                    $dirConfig['source'] = getenv('COMPOSER_VENDOR_DIR') ? : 'vendor';
+                    $dirConfig['source'] = getenv('COMPOSER_VENDOR_DIR') ?: 'vendor';
                 }
                 if (!isset($dirConfig['destination'])) {
-                    $dirConfig['destination'] = getenv('COMPOSER_VENDOR_DIR') ? : 'vendor';
+                    $dirConfig['destination'] = getenv('COMPOSER_VENDOR_DIR') ?: 'vendor';
+                }
+                if (!isset($dirConfig['update'])) {
+                    $dirConfig['update'] = false;
                 }
                 $src = \Yii::getAlias($dirConfig['source']);
                 $dst = $buildPath . DIRECTORY_SEPARATOR . $dirConfig['destination'];
@@ -149,10 +152,11 @@ class BuildController extends \yii\console\Controller
                     }
                 }
                 $commandOptions = array_unique($commandOptions);
-                $command = $this->iron->composerBin . ' install ' . implode(' ', $commandOptions);
+                $commandMode = $dirConfig['update'] ? 'update' : 'install';
+                $command = $this->iron->composerBin . ' ' . $commandMode . ' ' . implode(' ', $commandOptions);
 
                 // run command
-                $this->stdout("\n  Composer: $command\n  - $src\n  > $dst\n");
+                $this->stdout("\n  Composer: $command\n  - $src\n  > $dst\n\n");
                 passthru($command);
             } else {
 
@@ -209,6 +213,7 @@ class BuildController extends \yii\console\Controller
         $this->stdout("\nZip directory:\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
         \IronWorker::zipDirectory($buildPath, $zipFile, true);
+        $this->stdout("\n  Done. Size: " . sprintf("%.2f", filesize($zipFile) / pow(1024, 2)) . "M\n");
 
         $this->stdout("\nBuilding done.\n\n", Console::FG_BLUE);
     }
