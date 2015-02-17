@@ -39,15 +39,22 @@ class BuildController extends \yii\console\Controller
     const EVENT_BUILD_BEFORE_ZIP = 'build-before-zip';
 
     /**
-     * @var string|\spacedealer\iron\Iron Iron component ID. you can change this on cli to use a different configuration setting
+     * @var string|array|\spacedealer\iron\Iron Iron component ID. you can change this on cli to use a different configuration setting
      */
     public $iron = 'iron';
+
+    /**
+     * @var string
+     */
+    public $defaultAction = 'list';
 
     /**
      * @inheritdoc
      */
     public function init()
     {
+        parent::init();
+
         // init iron component
         $this->iron = Instance::ensure($this->iron, Iron::className());
     }
@@ -222,7 +229,7 @@ class BuildController extends \yii\console\Controller
      * @param string $name
      * @param bool $build
      */
-    public function actionUploadWorker($name, $build = true)
+    public function actionUploadWorker($name, $build = false)
     {
         $this->uploadWorker($name, $build);
     }
@@ -257,8 +264,14 @@ class BuildController extends \yii\console\Controller
         $appConfig = require($appConfigFile);
         $appConfig = Json::encode($appConfig);
 
+        // get stack - minimum required stack is php 5.4
+        $stack = isset($config['stack']) ? $config['stack'] : 'php-5.4';
+
         // push and deploy worker code
-        $res = $worker->postCode($bootstrapFile, $zipFile, $name, ['config' => $appConfig]);
+        $res = $worker->postCode($bootstrapFile, $zipFile, $name, [
+            'config' => $appConfig,
+            'stack' => $stack,
+        ]);
 
         $this->stdout("\nUploading done.\n\n", Console::FG_BLUE);
 
