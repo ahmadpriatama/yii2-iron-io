@@ -7,10 +7,13 @@
  * @copyright Copyright &copy; 2014 spacedealer GmbH
  */
 
-
 namespace spacedealer\iron;
 
-
+/**
+ * Class Exception
+ *
+ * @package spacedealer\iron
+ */
 class Exception extends \yii\base\Exception
 {
 

@@ -7,7 +7,6 @@
  * @copyright Copyright &copy; 2014 spacedealer GmbH
  */
 
-
 namespace spacedealer\iron;
 
 use yii\di\Instance;
@@ -24,7 +23,7 @@ class Cache extends \yii\caching\Cache
 {
 
     /**
-     * @var string|\spacedealer\iron\Iron ID of the iron component.
+     * @var string|array|\spacedealer\iron\Iron ID of the iron component.
      */
     public $iron = 'iron';
 

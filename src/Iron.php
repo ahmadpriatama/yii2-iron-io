@@ -14,6 +14,11 @@ use yii\base\Exception;
 use yii\base\InvalidConfigException;
 use yii\helpers\Json;
 
+/**
+ * Class Iron
+ *
+ * @package spacedealer\iron
+ */
 class Iron extends Component
 {
     const SERVICE_CACHE = 'cache';
@@ -265,37 +270,42 @@ class Iron extends Component
 
         if (!isset($args)) {
 
-            $args = ['task_id' => null, 'dir' => null, 'payload' => [], 'config' => null];
+            // use native function provided by iron worker bootstrap file
+            if (function_exists('\getArgs')) {
+                $args = \getArgs(true);
+            } else {
+                $args = array('task_id' => null, 'dir' => null, 'payload' => array(), 'config' => null);
 
-            foreach ($argv as $k => $v) {
-                if (empty($argv[$k + 1])) {
-                    continue;
-                }
-
-                if ($v == '-id') {
-                    $args['task_id'] = $argv[$k + 1];
-                }
-                if ($v == '-d') {
-                    $args['dir'] = $argv[$k + 1];
-                }
-
-                if ($v == '-payload' && file_exists($argv[$k + 1])) {
-                    $args['payload'] = file_get_contents($argv[$k + 1]);
-
-                    $parsed_payload = Json::decode($args['payload']); // decode as array
-
-                    if ($parsed_payload != null) {
-                        $args['payload'] = $parsed_payload;
+                foreach ($argv as $k => $v) {
+                    if (empty($argv[$k + 1])) {
+                        continue;
                     }
-                }
 
-                if ($v == '-config' && file_exists($argv[$k + 1])) {
-                    $args['config'] = file_get_contents($argv[$k + 1]);
+                    if ($v == '-id') {
+                        $args['task_id'] = $argv[$k + 1];
+                    }
+                    if ($v == '-d') {
+                        $args['dir'] = $argv[$k + 1];
+                    }
 
-                    $parsed_config = Json::decode($args['config']);
+                    if ($v == '-payload' && file_exists($argv[$k + 1])) {
+                        $args['payload'] = file_get_contents($argv[$k + 1]);
 
-                    if ($parsed_config != null) {
-                        $args['config'] = $parsed_config;
+                        $parsed_payload = Json::decode($args['payload']);
+
+                        if ($parsed_payload != null) {
+                            $args['payload'] = $parsed_payload;
+                        }
+                    }
+
+                    if ($v == '-config' && file_exists($argv[$k + 1])) {
+                        $args['config'] = file_get_contents($argv[$k + 1]);
+
+                        $parsed_config = Json::decode($args['config']);
+
+                        if ($parsed_config != null) {
+                            $args['config'] = $parsed_config;
+                        }
                     }
                 }
             }
