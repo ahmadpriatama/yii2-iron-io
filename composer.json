@@ -25,10 +25,9 @@
   },
   "require": {
     "php": ">=5.4.0",
-    "iron-io/iron_core": "~0.0",
-    "iron-io/iron_worker": "~1.0",
-    "iron-io/iron_mq": "~1.0",
-    "iron-io/iron_cache": "~0.0",
+    "iron-io/iron_worker": "1.4.*",
+    "iron-io/iron_mq": "1.5.*",
+    "iron-io/iron_cache": "0.1.*",
     "yiisoft/yii2": "2.0.2"
   },
   "require-dev": {
