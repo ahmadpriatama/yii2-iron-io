@@ -251,7 +251,7 @@ class Iron extends Component
     {
         global $argv;
         // test for argv structure and getArgs function in default bootstrap file runner.php
-        return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('getArgs'));
+        return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('\getArgs'));
     }
 
     /**
@@ -264,17 +264,20 @@ class Iron extends Component
         global $argv;
         static $args;
 
-        if (!self::runningAsIronWorker()) {
-            throw new \RuntimeException('Not running as iron worker.');
-        }
 
         if (!isset($args)) {
+
+            $args = array('task_id' => null, 'dir' => null, 'payload' => array(), 'config' => null);
+
+            if (!self::runningAsIronWorker()) {
+                return $args;
+            }
 
             // use native function provided by iron worker bootstrap file
             if (function_exists('\getArgs')) {
                 $args = \getArgs(true);
             } else {
-                $args = array('task_id' => null, 'dir' => null, 'payload' => array(), 'config' => null);
+
 
                 foreach ($argv as $k => $v) {
                     if (empty($argv[$k + 1])) {
@@ -345,7 +348,7 @@ class Iron extends Component
     public static function getTaskId()
     {
         $args = self::getArgs();
-        return $args['task_Id'];
+        return $args['task_id'];
     }
 
     /**
