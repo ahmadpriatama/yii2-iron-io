@@ -267,7 +267,7 @@ class Iron extends Component
 
         if (!isset($args)) {
 
-            $args = array('task_id' => null, 'dir' => null, 'payload' => array(), 'config' => null);
+            $args = array('task_id' => null, 'dir' => null, 'payload' => [], 'config' => null);
 
             if (!self::runningAsIronWorker()) {
                 return $args;
