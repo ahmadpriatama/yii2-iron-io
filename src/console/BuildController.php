@@ -90,6 +90,10 @@ class BuildController extends \yii\console\Controller
         $this->build($name);
     }
 
+    /**
+     * @param string $name
+     * @throws \yii\base\InvalidConfigException
+     */
     protected function build($name)
     {
         $config = $this->iron->getConfigForWorker($name);
@@ -222,18 +226,24 @@ class BuildController extends \yii\console\Controller
     }
 
     /**
+     * (Re-)zips worker zip file.
+     *
      * @param string $name
      * @throws \yii\base\InvalidConfigException
      */
     public function actionZip($name)
     {
-        // test config first
-        $this->iron->getConfigForWorker($name);
         $this->zip($name);
     }
 
+    /**
+     * @param string $name
+     */
     protected function zip($name)
     {
+        // test config first
+        $this->iron->getConfigForWorker($name);
+
         $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
         $zipFile = $buildPath . '.zip';
 
@@ -246,8 +256,9 @@ class BuildController extends \yii\console\Controller
     }
 
     /**
+     * Uploads worker zip file.
+     *
      * @param string $name
-     * @param bool $build
      */
     public function actionUpload($name)
     {
@@ -255,8 +266,9 @@ class BuildController extends \yii\console\Controller
     }
 
     /**
+     * (Re-)zips and uploads worker zip file.
+     *
      * @param string $name
-     * @param bool $build
      */
     public function actionZipUpload($name)
     {
@@ -265,8 +277,9 @@ class BuildController extends \yii\console\Controller
     }
 
     /**
+     * (Re-)builds, zips and uploads worker zip file.
+     *
      * @param string $name
-     * @param bool $build
      */
     public function actionBuildUpload($name)
     {
@@ -276,8 +289,7 @@ class BuildController extends \yii\console\Controller
 
     /**
      * @param string $name Worker name
-     * @param string $mode Whether to "build", re-"zip" or just upload worker (leave empty)
-     * @return mixed
+     * @return array
      */
     protected function upload($name)
     {
