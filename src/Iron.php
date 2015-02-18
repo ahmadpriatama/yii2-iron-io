@@ -384,7 +384,7 @@ class Iron extends Component
     public static function getParams()
     {
         $payload = self::getPayload();
-        return $payload['params'];
+        return empty($payload) ? [] : $payload['params'];
     }
 
     /**
