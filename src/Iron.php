@@ -335,7 +335,7 @@ class Iron extends Component
 
         // test for required config settings
         // worker app directory required
-        if (!isset($config['app'])) {
+        if (!isset($config['directories']['app'])) {
             throw new InvalidConfigException("Parameter app is not set in build configuration for worker $name.");
         }
 
