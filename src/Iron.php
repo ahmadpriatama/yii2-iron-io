@@ -264,7 +264,6 @@ class Iron extends Component
         global $argv;
         static $args;
 
-
         if (!isset($args)) {
 
             $args = array('task_id' => null, 'dir' => null, 'payload' => [], 'config' => null);
@@ -274,8 +273,8 @@ class Iron extends Component
             }
 
             // use native function provided by iron worker bootstrap file
-            if (function_exists('\getArgs')) {
-                $args = \getArgs(true);
+            if (function_exists('getArgs')) {
+                $args = getArgs(true);
             } else {
 
 
