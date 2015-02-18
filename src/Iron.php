@@ -251,8 +251,6 @@ class Iron extends Component
     {
         global $argv;
 
-        var_dump($argv);
-
         // test for argv structure and getArgs function in default bootstrap file runner.php
         return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('getArgs'));
     }
