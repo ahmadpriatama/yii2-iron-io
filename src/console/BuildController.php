@@ -116,7 +116,7 @@ class BuildController extends \yii\console\Controller
         // prepare destination directory index
         $destinationDirs = [];
 
-        foreach ($config as $dir => $dirConfig) {
+        foreach ($config['directories'] as $dir => $dirConfig) {
 
             // resolve source path - src supports aliases
 
@@ -249,8 +249,8 @@ class BuildController extends \yii\console\Controller
 
         $config = $this->iron->getConfigForWorker($name);
         $worker = $this->iron->getWorker();
-        $appSrcPath = \Yii::getAlias($config['app']['source']);
-        $appPathDst = \Yii::getAlias($config['app']['destination']);
+        $appSrcPath = \Yii::getAlias($config['directories']['app']['source']);
+        $appPathDst = \Yii::getAlias($config['directories']['app']['destination']);
         $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
 
         // prepare worker app bootstrap file path - relative to worker path
