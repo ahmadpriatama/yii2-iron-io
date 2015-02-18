@@ -12,7 +12,6 @@ namespace spacedealer\iron;
 use yii\base\Component;
 use yii\base\Exception;
 use yii\base\InvalidConfigException;
-use yii\helpers\Json;
 
 /**
  * Class Iron
@@ -145,27 +144,30 @@ class Iron extends Component
     {
         return [
             self::SERVICE_WORKER => [
-                'app' => [
-                    'mode' => 'copy',
-                    'source' => '@ironWorkerApp',
-                    'destination' => 'app',
-                    'options' => [
-                        'except' => [
-                            '/config',
-                            '/runtime',
-                            '.git',
-                            '.csv',
-                            '.svn',
-                            '.zip',
-                        ]
+                'stack' => 'php-5.5',
+                'directories' => [
+                    'app' => [
+                        'mode' => 'copy',
+                        'source' => '@ironWorkerApp',
+                        'destination' => 'app',
+                        'options' => [
+                            'except' => [
+                                '/config',
+                                '/runtime',
+                                '.git',
+                                '.csv',
+                                '.svn',
+                                '.zip',
+                            ]
+                        ],
                     ],
-                ],
-                'vendor' => [
-                    'mode' => 'composer',
-                    'source' => '@vendor',
-                    'options' => [
-                        '--prefer-dest',
-                        '--no-dev',
+                    'vendor' => [
+                        'mode' => 'composer',
+                        'source' => '@vendor',
+                        'options' => [
+                            '--prefer-dest',
+                            '--no-dev',
+                        ],
                     ],
                 ],
             ],
@@ -250,7 +252,6 @@ class Iron extends Component
     public static function runningAsIronWorker()
     {
         global $argv;
-
         // test for argv structure and getArgs function in default bootstrap file runner.php
         return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('getArgs'));
     }
