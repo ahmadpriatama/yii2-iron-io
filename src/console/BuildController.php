@@ -85,12 +85,12 @@ class BuildController extends \yii\console\Controller
     /**
      * @param string $name
      */
-    public function actionBuildWorker($name)
+    public function actionBuild($name)
     {
-        $this->buildWorker($name);
+        $this->build($name);
     }
 
-    protected function buildWorker($name)
+    protected function build($name)
     {
         $config = $this->iron->getConfigForWorker($name);
 
@@ -216,35 +216,71 @@ class BuildController extends \yii\console\Controller
         $this->trigger(self::EVENT_BUILD_BEFORE_ZIP);
 
         // zip all
-        $zipFile = $buildPath . '.zip';
-        $this->stdout("\nZip directory:\n", Console::FG_BLUE);
-        $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
-        \IronWorker::zipDirectory($buildPath, $zipFile, true);
-        $this->stdout("\n  Done. Size: " . sprintf("%.2f", filesize($zipFile) / pow(1024, 2)) . "M\n");
+        $this->zip($name);
 
         $this->stdout("\nBuilding done.\n\n", Console::FG_BLUE);
     }
 
     /**
      * @param string $name
+     * @throws \yii\base\InvalidConfigException
+     */
+    public function actionZip($name)
+    {
+        // test config first
+        $this->iron->getConfigForWorker($name);
+        $this->zip($name);
+    }
+
+    protected function zip($name)
+    {
+        $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
+        $zipFile = $buildPath . '.zip';
+
+        $this->stdout("\nZip directory:\n", Console::FG_BLUE);
+        $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
+
+        \IronWorker::zipDirectory($buildPath, $zipFile, true);
+
+        $this->stdout("\n  Done. Size: " . sprintf("%.2f", filesize($zipFile) / pow(1024, 2)) . "M\n");
+    }
+
+    /**
+     * @param string $name
      * @param bool $build
      */
-    public function actionUploadWorker($name, $build = false)
+    public function actionUpload($name)
     {
-        $this->uploadWorker($name, $build);
+        $this->upload($name);
+    }
+
+    /**
+     * @param string $name
+     * @param bool $build
+     */
+    public function actionZipUpload($name)
+    {
+        $this->zip($name);
+        $this->upload($name);
+    }
+
+    /**
+     * @param string $name
+     * @param bool $build
+     */
+    public function actionBuildUpload($name)
+    {
+        $this->build($name);
+        $this->upload($name);
     }
 
     /**
      * @param string $name Worker name
-     * @param bool $build Whether to build worker before upload or not
+     * @param string $mode Whether to "build", re-"zip" or just upload worker (leave empty)
      * @return mixed
      */
-    protected function uploadWorker($name, $build = true)
+    protected function upload($name)
     {
-        if ($build) {
-            $this->buildWorker($name);
-        }
-
         $this->stdout("\nUploading worker '$name'\n", Console::FG_BLUE);
 
         $config = $this->iron->getConfigForWorker($name);
