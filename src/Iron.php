@@ -251,7 +251,7 @@ class Iron extends Component
     {
         global $argv;
         // test for argv structure and getArgs function in default bootstrap file runner.php
-        return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('\getArgs'));
+        return (isset($argv['-id']) && isset($argv['-d']) && isset($argv['-payload']) && function_exists('getArgs'));
     }
 
     /**
@@ -293,7 +293,7 @@ class Iron extends Component
                     if ($v == '-payload' && file_exists($argv[$k + 1])) {
                         $args['payload'] = file_get_contents($argv[$k + 1]);
 
-                        $parsed_payload = Json::decode($args['payload']);
+                        $parsed_payload = json_decode($args['payload'], true);
 
                         if ($parsed_payload != null) {
                             $args['payload'] = $parsed_payload;
@@ -303,7 +303,7 @@ class Iron extends Component
                     if ($v == '-config' && file_exists($argv[$k + 1])) {
                         $args['config'] = file_get_contents($argv[$k + 1]);
 
-                        $parsed_config = Json::decode($args['config']);
+                        $parsed_config = json_decode($args['config'], true);
 
                         if ($parsed_config != null) {
                             $args['config'] = $parsed_config;
