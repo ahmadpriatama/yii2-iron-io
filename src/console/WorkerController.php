@@ -215,6 +215,6 @@ abstract class WorkerController extends \yii\console\Controller
     {
         $paramsDecrypted = base64_decode($params);
         $paramsDecrypted = $this->security->decryptByPassword($paramsDecrypted, $this->iron->workerPayloadPassword);
-        return Json::encode($paramsDecrypted);
+        return Json::decode($paramsDecrypted);
     }
 } 
