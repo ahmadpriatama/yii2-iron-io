@@ -310,16 +310,24 @@ class BuildController extends \yii\console\Controller
         // prepare yii2 worker app config (used when running app as iron worker)
         $appConfigFile = $appSrcPath . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "main.php";
         $appConfig = require($appConfigFile);
-        $appConfig = Json::encode($appConfig);
+
+        // remove directories from config
+        unset($config['directories']);
+        $config['config'] = Json::encode($appConfig);
 
         // get stack - minimum required stack is php 5.4
-        $stack = isset($config['stack']) ? $config['stack'] : 'php-5.4';
+        $config['stack'] = isset($config['stack']) ? $config['stack'] : 'php-5.4';
+
+        // add environment var
+        if (!isset($config['set_env']['YII_ON_IRON'])) {
+            if (!is_array($config['set_env'])) {
+                $config['set_env'] = [];
+            }
+            $config['set_env']['YII_ON_IRON'] = true;
+        }
 
         // push and deploy worker code
-        $res = $worker->postCode($bootstrapFile, $zipFile, $name, [
-            'config' => $appConfig,
-            'stack' => $stack,
-        ]);
+        $res = $worker->postCode($bootstrapFile, $zipFile, $name, $config);
 
         $this->stdout("\nUploading done.\n\n", Console::FG_BLUE);
 
