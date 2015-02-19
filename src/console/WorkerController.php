@@ -44,6 +44,16 @@ abstract class WorkerController extends \yii\console\Controller
     public $workerDelay = 0;
 
     /**
+     * @var string Name of cluster the worker task should run on. "default", "high-mem" or "dedicated".
+     */
+    public $workerCluster = 'default';
+
+    /**
+     * @var string|null Optional text label for your task.
+     */
+    public $workerLabel = null;
+
+    /**
      * @var string|\spacedealer\iron\Iron Iron component ID. You may change this to use different configuration settings.
      */
     public $iron = 'iron';
@@ -91,8 +101,10 @@ abstract class WorkerController extends \yii\console\Controller
         } else if ($this->isRunningAsWorker()) {
             // run as worker on iron worker
             // decrypt params first
-            $paramsDecrypted = $this->decryptParams($params);
-            return parent::runAction($id, $paramsDecrypted);
+            if (is_string($params)) {
+                $params = $this->decryptParams($params);
+            }
+            return parent::runAction($id, $params);
         } else {
             // running locally
             return parent::runAction($id, $params);
@@ -124,6 +136,8 @@ abstract class WorkerController extends \yii\console\Controller
             'priority' => $this->workerPriority,
             'timeout' => $this->workerTimeout,
             'delay' => $this->workerDelay,
+            'cluster' => $this->workerCluster,
+            'label' => $this->workerLabel,
         ];
 
         // prepare payload with encrypted params
@@ -170,6 +184,8 @@ abstract class WorkerController extends \yii\console\Controller
             'workerTimeout',
             'workerPriority',
             'workerDelay',
+            'workerLabel',
+            'workerCluster',
         ];
     }
 
