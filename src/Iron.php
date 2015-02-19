@@ -382,7 +382,7 @@ class Iron extends Component
     public static function getRoute()
     {
         $payload = self::getPayload();
-        return empty($payload) ? '' : $payload['route'];
+        return !isset($payload['route']) ? '' : $payload['route'];
     }
 
     /**
@@ -391,7 +391,7 @@ class Iron extends Component
     public static function getParams()
     {
         $payload = self::getPayload();
-        return empty($payload) ? [] : $payload['params'];
+        return empty($payload['params']) ? [] : $payload['params'];
     }
 
     /**
