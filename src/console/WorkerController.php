@@ -104,6 +104,9 @@ abstract class WorkerController extends \yii\console\Controller
             if (is_string($params)) {
                 $params = $this->decryptParams($params);
             }
+            if (empty($params)) {
+                $params = [];
+            }
             return parent::runAction($id, $params);
         } else {
             // running locally
