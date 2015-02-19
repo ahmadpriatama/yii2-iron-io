@@ -115,7 +115,7 @@ class BuildController extends \yii\console\Controller
         $this->trigger(self::EVENT_BUILD_BEFORE_COPY);
 
         // copy directories
-        $this->stdout("\nCopy directories:\n", Console::FG_BLUE);
+        $this->stdout("\n  Copy directories:\n", Console::FG_BLUE);
 
         // prepare destination directory index
         $destinationDirs = [];
@@ -197,7 +197,7 @@ class BuildController extends \yii\console\Controller
         $this->trigger(self::EVENT_BUILD_BEFORE_CLEANUP);
 
         // cleanup - get top dirs > remove if not in config > destination
-        $this->stdout("\nCleanup build directory:\n", Console::FG_BLUE);
+        $this->stdout("\n  Cleanup build directory:\n", Console::FG_BLUE);
         $found = false;
         if ($handle = opendir($buildPath)) {
             while (false !== ($file = readdir($handle))) {
