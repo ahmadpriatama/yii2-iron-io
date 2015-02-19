@@ -98,7 +98,7 @@ class BuildController extends \yii\console\Controller
     {
         $config = $this->iron->getConfigForWorker($name);
 
-        $this->stdout("\nBuild worker '$name'\n", Console::FG_BLUE);
+        $this->stdout("\nBuilding worker '$name'\n", Console::FG_BLUE);
 
         // prepare build folder (create, cleanup if it already exists)
         $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
@@ -222,7 +222,7 @@ class BuildController extends \yii\console\Controller
         // zip all
         $this->zip($name);
 
-        $this->stdout("\nBuilding done.\n\n", Console::FG_BLUE);
+        $this->stdout("\n  Building done.\n\n", Console::FG_BLUE);
     }
 
     /**
@@ -247,12 +247,14 @@ class BuildController extends \yii\console\Controller
         $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
         $zipFile = $buildPath . '.zip';
 
-        $this->stdout("\nZip directory:\n", Console::FG_BLUE);
+        $this->stdout("\nZipping worker '$name'\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
 
         \IronWorker::zipDirectory($buildPath, $zipFile, true);
 
-        $this->stdout("\n  Done. Size: " . sprintf("%.2f", filesize($zipFile) / pow(1024, 2)) . "M\n");
+        $this->stdout("\n  Size: " . sprintf("%.2f", filesize($zipFile) / pow(1024, 2)) . "M\n");
+
+        $this->stdout("\n  Zipping done.\n\n", Console::FG_BLUE);
     }
 
     /**
@@ -329,7 +331,7 @@ class BuildController extends \yii\console\Controller
         // push and deploy worker code
         $res = $worker->postCode($bootstrapFile, $zipFile, $name, $config);
 
-        $this->stdout("\nUploading done.\n\n", Console::FG_BLUE);
+        $this->stdout("\n  Uploading done.\n\n", Console::FG_BLUE);
 
         return $res;
     }
