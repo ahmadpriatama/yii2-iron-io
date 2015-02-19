@@ -88,6 +88,7 @@ class BuildController extends \yii\console\Controller
     public function actionBuild($name)
     {
         $this->build($name);
+        $this->zip($name);
     }
 
     /**
@@ -217,11 +218,6 @@ class BuildController extends \yii\console\Controller
             $this->stdout("\n  Nothing found to cleanup.\n");
         }
 
-        $this->trigger(self::EVENT_BUILD_BEFORE_ZIP);
-
-        // zip all
-        $this->zip($name);
-
         $this->stdout("\n  Building done.\n\n", Console::FG_BLUE);
     }
 
@@ -247,6 +243,8 @@ class BuildController extends \yii\console\Controller
         $buildPath = \Yii::getAlias($this->iron->workerBuildPath . DIRECTORY_SEPARATOR . $name);
         $zipFile = $buildPath . '.zip';
 
+        $this->trigger(self::EVENT_BUILD_BEFORE_ZIP);
+        
         $this->stdout("\nZipping worker '$name'\n", Console::FG_BLUE);
         $this->stdout("\n  - $buildPath\n  > " . $zipFile . "\n");
 
