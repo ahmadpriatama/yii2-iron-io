@@ -54,12 +54,12 @@ abstract class WorkerController extends \yii\console\Controller
     public $workerLabel = null;
 
     /**
-     * @var string|\spacedealer\iron\Iron Iron component ID. You may change this to use different configuration settings.
+     * @var string|array|\spacedealer\iron\Iron Iron component ID. You may change this to use different configuration settings.
      */
     public $iron = 'iron';
 
     /**
-     * @var string|\yii\base\Security Security component ID. You may change this to use different configuration settings.
+     * @var string|array|\yii\base\Security Security component ID. You may change this to use different configuration settings.
      */
     public $security = 'security';
 
