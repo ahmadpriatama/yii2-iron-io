@@ -319,10 +319,10 @@ class BuildController extends \yii\console\Controller
         $config['stack'] = isset($config['stack']) ? $config['stack'] : 'php-5.4';
 
         // add environment var
+        if (!isset($config['set_env'])) {
+            $config['set_env'] = [];
+        }
         if (!isset($config['set_env']['YII_ON_IRON'])) {
-            if (!is_array($config['set_env'])) {
-                $config['set_env'] = [];
-            }
             $config['set_env']['YII_ON_IRON'] = true;
         }
 
