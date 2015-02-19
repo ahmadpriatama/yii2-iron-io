@@ -386,12 +386,12 @@ class Iron extends Component
     }
 
     /**
-     * @return array
+     * @return string
      */
     public static function getParams()
     {
         $payload = self::getPayload();
-        return empty($payload['params']) ? [] : $payload['params'];
+        return empty($payload['params']) ? '' : $payload['params'];
     }
 
     /**

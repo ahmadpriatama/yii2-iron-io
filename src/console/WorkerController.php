@@ -189,8 +189,8 @@ abstract class WorkerController extends \yii\console\Controller
     /**
      * Decrypt payload parameters
      *
-     * @param array $params
-     * @return string
+     * @param string $params
+     * @return array
      */
     protected function decryptParams($params)
     {
